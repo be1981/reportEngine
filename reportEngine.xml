@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="reportEngine" default="jar">
+
+    <!--<property file="reportEngine.properties"/>-->
+
+    <!-- Uncomment the following property if no tests compilation is needed -->
+    <!--
+    编译Report Core 项目，大包成为一个ReportCore.jar文件，供其他模块使用
+    需要先运行com.cvicse.report。model下的ANT文件 reportModel.xml
+    需要先运行com.cvicse.report。api下的ANT文件 reportApi.xml
+    需要先运行com.cvicse.inforreport。core下的ANT文件 reportCore.xml
+    -->
+    <!-- Compiler options -->
+
+    <property name="compiler.debug" value="on"/>
+    <property name="compiler.generate.no.warnings" value="off"/>
+    <property name="compiler.args" value=""/>
+    <property name="compiler.max.memory" value="128m"/>
+    <patternset id="ignored.files">
+        <exclude name="**/CVS/**"/>
+        <exclude name="**/SCCS/**"/>
+        <exclude name="**/RCS/**"/>
+        <exclude name="**/rcs/**"/>
+        <exclude name="**/.DS_Store/**"/>
+        <exclude name="**/.svn/**"/>
+        <exclude name="**/.sbas/**"/>
+        <exclude name="**/.IJI.*/**"/>
+        <exclude name="**/vssver.scc/**"/>
+        <exclude name="**/vssver2.scc/**"/>
+    </patternset>
+    <patternset id="compiler.resources">
+        <include name="**/?*.properties"/>
+        <include name="**/?*.xml"/>
+        <include name="**/?*.gif"/>
+        <include name="**/?*.png"/>
+        <include name="**/?*.jpeg"/>
+        <include name="**/?*.jpg"/>
+        <include name="**/?*.html"/>
+        <include name="**/?*.dtd"/>
+        <include name="**/?*.tld"/>
+        <include name="**/?*.csv"/>
+        <include name="**/?*.ipr"/>
+        <include name="**/META-INF/**"/>
+        <include name="**/?*.txt"/>
+    </patternset>
+
+    <!-- JDK definitions -->
+
+    <dirname property="module.report.engine.basedir" file="${ant.file}"/>
+
+    <!-- Global Libraries -->
+
+    <path id="library.pmd.classpath">
+        <fileset dir="${module.report.engine.basedir}/lib">
+            <include name="*.jar"/>
+        </fileset>
+    </path>
+
+    <!-- Application Server Libraries -->
+
+    <!-- Modules -->
+        <target name="init_Module">
+        <propertyfile file="src/com/cvicse/inforreport/engine/report_engine.properties" comment="init report_Engine properties">
+        	<entry key="mError" value="Engine Model Error"/>
+        	<entry key="mVersion" value="6.2.2"/>
+            <entry key="mName" value="Report Engine Module"/>
+            <entry key="mID" value="com.cvicse.inforreport.ReportEngineModule."/>
+            <entry key="mBuildDate" type="date" value="now"/>
+            <entry key="mDependencie" value="Report Model,ReportAPI,Report Core"/>
+            <entry key="mDescription" value="Report Engine"/>
+            <entry key="mBuild" type="int" default="0001" operation="+" pattern="0000"/>
+        </propertyfile>
+
+        <propertyfile file="src/com/cvicse/inforreport/engine/report_engine_zh.properties" comment="init report_Engine properties">
+        	<entry key="mError" value="Engine Model模块错误"/>
+        	<entry key="mVersion" value="6.2.2"/>
+            <entry key="mName" value="Report Engine模块"/>
+            <entry key="mID" value="com.cvicse.inforreport.ReportEngineModule."/>
+            <entry key="mBuildDate" type="date" value="now"/>
+            <entry key="mDependencie" value="Report Model,ReportAPI,Report Core"/>
+            <entry key="mDescription" value="Report引擎模块，负责调用Report引擎"/>
+            <entry key="mBuild" type="int" default="0001" operation="+" pattern="0000"/>
+        </propertyfile>
+    </target>
+
+    <!-- Module ReportComponent -->
+
+    <property name="compiler.args.reportcomponent" value="${compiler.args}"/>
+
+    <property name="report.engine.output.dir" value="${module.report.engine.basedir}/bin"/>
+    <!--<property name="reportcomponent.testoutput.dir" value="${module.reportcomponent.basedir}/bin"/>-->
+
+    <path id="report.engine.module.bootclasspath">
+        <!-- Paths to be included in compilation bootclasspath -->
+    </path>
+
+    <path id="report.engine.module.classpath">
+        <fileset dir="${module.report.engine.basedir}/lib">
+            <include name="*.jar"/>
+        </fileset>
+        <path refid="library.pmd.classpath"/>
+        <!--       <path refid="library.groovy-1.5.6.classpath"/>
+        --><!--<path refid="${module.jdk.classpath.reportcomponent}"/>--><!--
+        <pathelement location="${module.reportcomponent.basedir}/lib/hsqldb.jar"/>
+        <pathelement location="${module.reportcomponent.basedir}/lib/commons-codec-1.2.jar"/>
+        <path refid="library.junit.classpath"/>-->
+    </path>
+
+    <path id="report.engine.runtime.module.classpath">
+        <fileset dir="${module.report.engine.basedir}/lib">
+            <include name="*.jar"/>
+        </fileset>
+        <path refid="library.pmd.classpath"/>
+    </path>
+
+
+    <patternset id="excluded.from.module.reportcomponent">
+        <patternset refid="ignored.files"/>
+    </patternset>
+
+    <patternset id="excluded.from.compilation.reportcomponent">
+        <patternset refid="excluded.from.module.reportcomponent"/>
+    </patternset>
+
+    <path id="report.engine.module.sourcepath">
+        <dirset dir="${module.report.engine.basedir}">
+            <include name="src"/>
+            <!--<include name="test"/>-->
+        </dirset>
+    </path>
+
+
+    <target name="compile.module.reportcomponent"
+            depends="compile.module.report.engine.production"
+            description="Compile module ReportComponent"/>
+
+    <!--
+    <taskdef name="groovyc" classname="org.codehaus.groovy.ant.Groovyc">
+        <classpath refid="library.groovy.classpath"/>
+    </taskdef>
+    -->
+
+    <path id="groovy.classpath">
+        <pathelement path="${report.engine.output.dir}"/>
+        <path refid="report.engine.module.classpath"/>
+    </path>
+
+    <target name="compile.module.report.engine.production" depends="init"
+            description="Compile module ReportComponent; production classes">
+        <mkdir dir="${report.engine.output.dir}"/>
+
+        <javac encoding="UTF-8" destdir="${report.engine.output.dir}" debug="${compiler.debug}"
+               nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true">
+            <!--executable="${module.jdk.bin.reportcomponent}/javac">-->
+            <compilerarg line="${compiler.args.reportcomponent}"/>
+            <bootclasspath refid="report.engine.module.bootclasspath"/>
+            <classpath refid="report.engine.module.classpath"/>
+            <src refid="report.engine.module.sourcepath"/>
+            <patternset refid="excluded.from.compilation.reportcomponent"/>
+        </javac>
+        <!--
+            <groovyc destdir="${report.engine.output.dir}">
+                <src refid="report.engine.module.sourcepath"/>
+                <classpath refid="groovy.classpath"/>
+            </groovyc>
+        -->
+        <copy todir="${report.engine.output.dir}">
+            <fileset dir="${module.report.engine.basedir}/src">
+                <patternset refid="compiler.resources"/>
+                <type type="file"/>
+            </fileset>
+            <!--
+
+            <fileset dir="${module.report.engine.basedir}/test">
+                <patternset refid="compiler.resources"/>
+                <type type="file"/>
+            </fileset>
+            -->
+        </copy>
+    </target>
+
+    <!--   <target name="compile.module.reportcomponent.tests" depends="compile.module.reportcomponent.production"
+description="compile module ReportComponent; test classes" unless="skip.tests"/>-->
+
+    <target name="clean.module.report.engine" description="cleanup module">
+        <delete dir="${report.engine.output.dir}"/>
+        <!--<delete dir="${reportcomponent.testoutput.dir}"/>-->
+    </target>
+
+    <target name="init" description="Build initialization">
+        <!-- Perform any build initialization in this target -->
+        <mkdir dir="${report.engine.output.dir}"/>
+        <copy todir="${module.report.engine.basedir}/lib/" overwrite="true">
+            <fileset file="${module.report.engine.basedir}/../com.cvicse.report.model/reportModel.jar"></fileset>
+            <fileset file="${module.report.engine.basedir}/../com.cvicse.report.engine.api/reportAPI.jar"></fileset>
+            <fileset file="${module.report.engine.basedir}/../com.cvicse.inforreport.core/reportCore.jar"></fileset>
+            <fileset file="${module.report.engine.basedir}/../com.cvicse.report.datasource/reportDataSource.jar"></fileset>
+        </copy>
+    </target>
+
+    <target name="clean" depends="clean.module.report.engine" description="cleanup all"/>
+
+    <target name="jar" depends="clean,init,init_Module,compile.module.report.engine.production">
+        <delete file="reportEngine.jar"/>
+        <jar destfile="reportEngine.jar" duplicate="preserve">
+            <fileset dir="${report.engine.output.dir}"/>
+        </jar>
+    </target>
+
+    <property name="report" value="unitReport"/>
+
+    
+    <!--
+      <target name="pmd" depends="init">
+          <taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask"
+                   classpathref="reportcomponent.module.classpath"/>
+          <pmd>
+              <ruleset>rulesets/basic.xml</ruleset>
+              <ruleset>rulesets/braces.xml</ruleset>
+              <ruleset>rulesets/javabeans.xml</ruleset>
+              <ruleset>rulesets/unusedcode.xml</ruleset>
+              <ruleset>rulesets/strings.xml</ruleset>
+              <ruleset>rulesets/design.xml</ruleset>
+              <ruleset>rulesets/coupling.xml</ruleset>
+              <ruleset>rulesets/codesize.xml</ruleset>
+              <ruleset>rulesets/imports.xml</ruleset>
+              <ruleset>rulesets/naming.xml</ruleset>
+              <formatter type="xml" toFile="${module.reportcomponent.basedir}/pmd_xml/pmd.xml"/>
+              <fileset dir="${module.reportcomponent.basedir}/src">
+                  <include name="**/*.java"/>
+              </fileset>
+          </pmd>
+      </target>
+      <target name="pmd_html" depends="init">
+          <taskdef name="pmd" classname="net.sourceforge.pmd.ant.PMDTask"
+                   classpathref="reportcomponent.module.classpath"/>
+          <pmd>
+              <ruleset>rulesets/basic.xml</ruleset>
+              <ruleset>rulesets/braces.xml</ruleset>
+              <ruleset>rulesets/javabeans.xml</ruleset>
+              <ruleset>rulesets/unusedcode.xml</ruleset>
+              <ruleset>rulesets/strings.xml</ruleset>
+              <ruleset>rulesets/design.xml</ruleset>
+              <ruleset>rulesets/coupling.xml</ruleset>
+              <ruleset>rulesets/codesize.xml</ruleset>
+              <ruleset>rulesets/imports.xml</ruleset>
+              <ruleset>rulesets/naming.xml</ruleset>
+              <formatter type="html" toFile="${module.reportcomponent.basedir}/pmd_html/pmd_report.html"
+                         linePrefix=".line"/>
+              <fileset dir="${module.reportcomponent.basedir}/src">
+                  <include name="**/*.java"/>
+              </fileset>
+          </pmd>
+      </target>
+    -->
+    <!--    <target name="findbugs" depends="jar">
+        <taskdef name="findbugs" classname="edu.umd.cs.findbugs.anttask.FindBugsTask"
+                 classpathref="${module.jdk.classpath.reportcomponent}"/>
+        <findbugs classpathref="build.classpath" pluginlist="${lib.dir}/coreplugin-1.0.jar"
+                  output="xml" outputFile="${default.target.dir}/findbugs.xml">
+            <sourcePath path="${source.dir}"/>
+            <class location="${default.target.dir}/plainead.jar"/>
+        </findbugs>
+    </target>-->
+
+    <target name="all" depends="clean,init,jar" description="build all"/>
+</project>

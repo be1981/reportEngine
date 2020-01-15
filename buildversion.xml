@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="gb2312"?>
+<project name="EngineBuildVersion" default="build.version" basedir=".">
+	<target name="build.version" description="build version">
+			<propertyfile
+	    	    file="src/com/cvicse/inforreport/classic/engine/version.properties"
+	    	    comment="InforReport Engine Version Properties">	    	 
+	    	  <entry  key="version" value="6.2.0"/>
+	    	  <!--entry  key="version.type" value="1"/-->
+	    	  <entry  key="build.count" default="" type="int" operation="+" pattern="0000" />
+	    	  <entry  key="build.date" type="date" value="now" pattern="yyyyMMddHHmm"/>
+	    	</propertyfile>     
+	</target>
+</project>

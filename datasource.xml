@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<context>  
+<resource id="ds1">
+<property name="driverClass" value="ds1driver"/>
+<property name="jdbcUrl" value="ds1url"/>
+<property name="user" value="ds1user"/>
+<property name="password" value="ds1pw"/>
+<property name="description" value=""/>
+</resource>
+<resource id="ds2">
+<property name="driverClass" value="ccc"/>
+<property name="jdbcUrl" value="ddd"/>
+<property name="user" value="user2"/>
+<property name="password" value="pw2"/>
+<property name="description" value="ds2des"/>
+</resource>
+<resource id="txt">
+<property name="path" value="path2"/>
+<property name="description" value="txtdes"/>
+</resource>
+<resource id="db1">
+<property name="driverClass" value="sun.jdbc.odbc.JdbcOdbcDriver"/>
+<property name="jdbcUrl" value="jdbc:odbc:db1"/>
+<property name="user" value="admin"/>
+<property name="password" value=""/>
+<property name="description" value="db1des"/>
+</resource>
+
+
+
+
+
+
+
+
+
+
+
+</context>

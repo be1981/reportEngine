@@ -1,0 +1,96 @@
+Report 新架构将在以下方面提供对外扩展
+扩展点:
+     引擎通过开放提供扩展的接口,实现让开发人员增强引擎功能.达到提高开发效率,实现灵活定制的目的.
+
+     
+处理引擎扩展点：将来扩展引擎使用
+扩展点 ：com.cvicse.inforreport.api.IReportEngine
+    输入：文件名称或文件
+    输出：XML格式的结果，InforReport 对象:将来会提供更多的方式JSON ,web service
+目前提供：
+         1、rpt Report引擎两个 inforSuite Report V6和v4.2,处理.rpt格式文件
+         2、groovy DSL引擎.处理.groovy 文件
+
+图表处理引擎扩展点：
+扩展点 ：com.cvicse.inforreport.api.ChartProcessor
+    输入：
+    输出：
+目前提供：
+         1、目前提供8种图表类型
+         2、将来根据Flash Chart支持的类型和用户需要进行扩展
+
+DSL指令引擎扩展点：
+扩展点 ：com.cvicse.inforreport.api.IReportDSLService
+    输入：指令名称
+    输出：
+目前提供：
+         1、目前提供引擎算法的指令扩展,主要用于提供数据源获得的指令扩展
+         2、
+
+导出引擎扩展点：
+扩展点 ：com.cvicse.inforreport.api.IReportExporter
+    输入：文件类型: csv,excel,pdf
+    输出：outputStream
+目前提供：
+         1、目前提供CSV,PDF,EXECEL,HTML方式的导出
+         2、将来可以扩展WORD和其他格式
+
+
+数据源处理扩展点：
+扩展点 ：com.cvicse.inforreport.api.IRDataProcessor
+    输入：数据定义 DataDefine
+    输出：
+目前提供：
+         1、目前提供四种处理:文本,XML,SQL和对象,将来扩展到多种
+         2、
+
+数据集定义部分扩展点：
+扩展点 ：com.cvicse.inforreport.api.IDataDefine
+    输入：数据定义 DataDefine
+    输出：
+目前提供：
+         1、目前提供五种处理:文本,XML,SQL和对象,存储过程,将来扩展到多种
+         2、
+
+函数定义部分扩展点：
+扩展点 ：com.cvicse.inforreport.api.IFunction
+    输入：
+    输出：
+目前提供：
+         1、提供自定义函数
+         2、
+
+
+扩展模块编写的格式和要求
+目前采用java Lookup API 方式来将扩展注入到引擎
+扩展模块就是一个普通的java 项目,但需要编写对应的扩展点的扩展文件和实现扩展接口的类
+
+使用方式:
+将扩展模块打成jar包方式,放到lib目录中
+
+ 引擎的工作
+ 报表数据源部分 （6.1）
+ 调度的接口部分 （6.2）
+ 引擎访问权限
+
+ 与展示层交互使用的XML的封装
+
+
+
+报表服务平台（整合原有的报表管理工具和展示应用以及现在报表平台的功能）
+布局
+
+角色 ：一般用户
+
+1、列出模板目录下的模板文件（Tree）  AJAX方式，不是一次全部加载
+2、列出模板目录下的模板文件（Table） AJAX方式，不是一次全部加载
+3、显示模板文件设计的报表（ActiveX）
+4、显示模板文件设计的报表（ZK）
+5、下载模板文件
+6、生成报表访问URL
+7、联机手册
+
+角色 ：报表管理员
+8、上传报表模板
+9、管理报表模板目录（新建目录，删除目录，移动和重命名）
+10、管理报表数据源（新建，编辑，删除）
