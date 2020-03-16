@@ -9,7 +9,6 @@ import java.util.List;
 
 import com.cvicse.inforreport.api.IReportExporter;
 import com.cvicse.inforreport.exceptions.ReportException;
-import com.cvicse.inforreport.exporter.CellEvent;
 import com.cvicse.inforreport.exporter.chart.ChartExporter;
 import com.cvicse.inforreport.model.Body;
 import com.cvicse.inforreport.model.DynamicChart;
@@ -20,6 +19,7 @@ import com.cvicse.inforreport.model.IRColor;
 import com.cvicse.inforreport.model.IRFont;
 import com.cvicse.inforreport.model.InforReport;
 import com.cvicse.inforreport.model.PageSetup;
+import com.cvicse.inforreport.model.Printzone;
 import com.cvicse.inforreport.model.ReportData;
 import com.cvicse.inforreport.model.Row;
 import com.cvicse.inforreport.model.Style;
@@ -31,7 +31,6 @@ import com.cvicse.inforreport.util.ReportConfiger;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
 import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
 import com.lowagie.text.HeaderFooter;
 import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
@@ -43,90 +42,140 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 
 public class PDFReportExporter implements IReportExporter {
-	
+
 	private Document pdfDocument;
-	
+
 	private List colsWidth;
-	
+
 	private List rowsHeight;
-	
+
 	private InforReport report;
-	
+
 	private PdfWriter pdfWriter;
 
-	public void exportReport(InforReport report, OutputStream result)
-			throws ReportException {
+	public void exportReport(InforReport report, OutputStream result) throws ReportException {
 		exportReport(null, report, result);
 
 	}
 
-	public void exportReport(PageSetup pagesetup, InforReport report,
-			OutputStream result) throws ReportException {
-		this.report = report; 
+	public void exportReport(PageSetup pagesetup, InforReport report, OutputStream result) throws ReportException {
+		this.report = report;
 		colsWidth = report.getColsWidth();
 		rowsHeight = report.getRowsHeight();
-		
-		if(pagesetup==null)
+
+		if (pagesetup == null)
 			pagesetup = report.getPagesetup();
+
+		Rectangle pageSize = PageSize.A4;
 		String pageHeader = null;
 		String pageFooter = null;
+		float marginHeader = 0.0f;
+		float marginFooter = 0.0f;
+		Style headerStyle = null;
+		Style footerStyle = null;
+		Font headerFont = null;
+		Font footerFont = null;
+		int headerAlignment = Element.ALIGN_LEFT;
+		int footerAlignment = Element.ALIGN_LEFT;
 		if (pagesetup != null) {
-			float marginLeft = Math.round(Float.parseFloat(pagesetup.getLeftMargin()==null?"0":pagesetup.getLeftMargin())*28.35);
-			float marginRight = Math.round(Float.parseFloat(pagesetup.getRightMargin()==null?"0":pagesetup.getRightMargin())*28.35);
-			float marginTop = Math.round(Float.parseFloat(pagesetup.getTopMargin()==null?"0":pagesetup.getTopMargin())*28.35);
-			float marginBottom = Math.round(Float.parseFloat(pagesetup.getBottomMargin()==null?"0":pagesetup.getBottomMargin())*28.35);
-			Rectangle pageSize = PageSize.A4;
-			if("landscape".equalsIgnoreCase(pagesetup.getOrientation())){
+			float marginLeft = Math.round(
+					Float.parseFloat(pagesetup.getLeftMargin() == null ? "0" : pagesetup.getLeftMargin()) * 28.35);
+			float marginRight = Math.round(
+					Float.parseFloat(pagesetup.getRightMargin() == null ? "0" : pagesetup.getRightMargin()) * 28.35);
+			float marginTop = Math
+					.round(Float.parseFloat(pagesetup.getTopMargin() == null ? "0" : pagesetup.getTopMargin()) * 28.35);
+			float marginBottom = Math.round(
+					Float.parseFloat(pagesetup.getBottomMargin() == null ? "0" : pagesetup.getBottomMargin()) * 28.35);
+			if ("landscape".equalsIgnoreCase(pagesetup.getOrientation())) {
 				pageSize = pageSize.rotate();
-
 			}
 			pdfDocument = new Document(pageSize);
-			pdfDocument.setMargins(marginLeft, marginRight,marginTop, marginBottom);	
+			pdfDocument.setMargins(marginLeft, marginRight, marginTop, marginBottom);
+
 			pageHeader = pagesetup.getPageHeaderContent();
+//			System.out.println("页眉1为:" + pageHeader);
+			marginHeader = Math.round(
+					Float.parseFloat(pagesetup.getHeaderMargin() == null ? "0" : pagesetup.getHeaderMargin()) * 28.35);
+			headerStyle = pagesetup.getPageHeaderStyle();
+			if (headerStyle != null) {
+				if ("right".equalsIgnoreCase(headerStyle.getHalign())) {
+					headerAlignment = Element.ALIGN_RIGHT;
+				} else if ("center".equalsIgnoreCase(headerStyle.getHalign())) {
+					headerAlignment = Element.ALIGN_CENTER;
+				} else {
+					headerAlignment = Element.ALIGN_LEFT;
+				}
+				try {
+					headerFont = convertFont(headerStyle.getFont());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
 			pageFooter = pagesetup.getPageFooterContent();
+			marginFooter = Math.round(
+					Float.parseFloat(pagesetup.getFooterMargin() == null ? "0" : pagesetup.getFooterMargin()) * 28.35);
+			footerStyle = pagesetup.getPageFooterStyle();
+			if (footerStyle != null) {
+				if ("right".equalsIgnoreCase(footerStyle.getHalign())) {
+					footerAlignment = Element.ALIGN_RIGHT;
+				} else if ("center".equalsIgnoreCase(footerStyle.getHalign())) {
+					footerAlignment = Element.ALIGN_CENTER;
+				} else {
+					footerAlignment = Element.ALIGN_LEFT;
+				}
+				try {
+					footerFont = convertFont(footerStyle.getFont());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		} else {
-			pdfDocument = new Document(PageSize.A4);
-		}		
-		
+			pdfDocument = new Document(pageSize);
+		}
 
 		try {
 			pdfWriter = PdfWriter.getInstance(pdfDocument, result);
+			if (pagesetup != null) {
+				if(headerFont == null) {
+					headerFont = convertFont(new IRFont());
+				}
+				if(footerFont == null) {
+					footerFont = convertFont(new IRFont());
+				}
+				PdfHeaderFooterEvent headerFooter = new PdfHeaderFooterEvent(pageHeader, pageFooter, headerAlignment,
+						footerAlignment, marginHeader, marginFooter, pageSize, headerFont, footerFont);
+				pdfWriter.setBoxSize("art", pageSize);
+				pdfWriter.setPageEvent(headerFooter);
+			}
 			
 			String reportTitle = report.getReportTitle();
 			if ((reportTitle != null) && (!reportTitle.equals("")))
 				pdfDocument.addTitle(reportTitle);
-			if (pageHeader != null) {
-				HeaderFooter header = new HeaderFooter(new Phrase(pageHeader),
-						false);
-				header.setBorder(HeaderFooter.NO_BORDER);
-				pdfDocument.setHeader(header);
-			}
+
+//			if (pageHeader != null) {
+//				HeaderFooter header = new HeaderFooter(new Phrase(pageHeader), false);
+//				header.setBorder(HeaderFooter.NO_BORDER);
+//				pdfDocument.setHeader(header);
+//			}
 
 			pdfDocument.open();
-			
-			if (pageFooter != null) {
-				HeaderFooter footer = new HeaderFooter(new Phrase(pageFooter),
-						true);
-				footer.setBorder(HeaderFooter.NO_BORDER);
-				pdfDocument.setFooter(footer);
-			}
-			
-			/*			
-			//export title
-			Title title = report.getTitle();
-			if (title != null) {
-				exportTitle(title);
-			}
-			// export body
-			exportBody(report.getBody());
-			// export summary
-			Summary summary = report.getSummary();
-			if (summary != null) {
-				exportSummary(summary);
-			}
-*/
 
-			
+//			if (pageFooter != null) {
+//				HeaderFooter footer = new HeaderFooter(new Phrase(pageFooter), true);
+//				footer.setBorder(HeaderFooter.NO_BORDER);
+//				pdfDocument.setFooter(footer);
+//			}
+
+			/*
+			 * //export title Title title = report.getTitle(); if (title != null) {
+			 * exportTitle(title); } // export body exportBody(report.getBody()); // export
+			 * summary Summary summary = report.getSummary(); if (summary != null) {
+			 * exportSummary(summary); }
+			 */
+
 			// 2009.07.13重写，用grid来导出
 			ReportData wrapper = report.getWrapper();
 			if (wrapper == null) {
@@ -135,48 +184,59 @@ public class PDFReportExporter implements IReportExporter {
 			}
 			Grid grid = wrapper.getGrid();
 			// EngineUtils.Doc2XmlFile(wrapper.getGridDocument(), "GBK", "C:/xx.xml");
-		
+
 			float[] rows = new float[rowsHeight.size()];
 			for (int i = 0; i < rowsHeight.size(); i++) {
 				rows[i] = Float.parseFloat(String.valueOf(rowsHeight.get(i)));
 			}
 
-			float[] cols= new float[colsWidth.size()];
-			for (int i = 0; i < colsWidth.size(); i++){
-				cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)));			
-			}			
+			float[] cols = new float[colsWidth.size()];
+			for (int i = 0; i < colsWidth.size(); i++) {
+				cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)));
+			}
 			PdfPTable pTable = new PdfPTable(cols);
-			
+
 			// 逐行导出
 			GridRow[] arrGridRows = grid.arrGridRows;
 			for (int i = 0; i < grid.totalrow; i++) {
 				GridRow gridrow = arrGridRows[i];
 				GridCell[] arrGridCells = gridrow.arrGridCells;
 				for (int j = 0; j < grid.totalcol; j++) {
-					if (arrGridCells[j].merged != true) {
-						PdfPCell pCell = createPdfpCell(arrGridCells[j],rows[i]);
+					if (arrGridCells[j].rowSpan > 1 && arrGridCells[j].colSpan > 1) {
+						// 20191207,科技部奖励办,将被合并单元格设置为白色无边框
+						Style style = arrGridCells[j].style;
+						updateMergedCell(arrGridRows, style, i + 1, j + 1, i + arrGridCells[j].rowSpan - 1,
+								j + arrGridCells[j].colSpan - 1);
+					}
+					if (!arrGridCells[j].merged) {
+						// System.out.println("非被合并单元格：第" + i + "行,第"+ j + "列。");
+						PdfPCell pCell = createPdfpCell(arrGridCells[j], rows[i]);
 						pTable.addCell(pCell);
 					}
 				}
 				pTable.completeRow();
 			}
+
+			// 20191207,科技部奖励办,增加重复打印处理，暂时只支持从第一行开始
+			Printzone pz = report.getPrintzone();
+			pTable.setHeaderRows(pz.getRowTitleHeight());
+
 			pdfDocument.add(pTable);
-			
+
 			// 导出图表
 			DynamicChart[] charts = report.getBody().getCharts();
-			for(DynamicChart chart: charts){
+			for (DynamicChart chart : charts) {
 				exportChart(chart);
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new ReportException(e.getMessage());
-		}		
-		pdfDocument.close();		
+		}
+		pdfDocument.close();
 
 	}
-	
-	
+
 	/**
 	 * 导出标题区
 	 * 
@@ -205,51 +265,52 @@ public class PDFReportExporter implements IReportExporter {
 		// body区风格
 		Style bodyStyle = body.getStyle();
 
-		// 遍历所有子表		
+		// 遍历所有子表
 		com.cvicse.inforreport.model.Table[] tables = body.getTables();
 		for (int i = 0; i < tables.length; i++) {
 			com.cvicse.inforreport.model.Table modelTable = tables[i];
 			exportTable(modelTable, bodyStyle);
 		}
-		
+
 		DynamicChart[] charts = body.getCharts();
-		for(DynamicChart chart: charts){
+		for (DynamicChart chart : charts) {
 			exportChart(chart);
 		}
 	}
-	
+
 	private void exportChart(DynamicChart chart) throws Exception {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		ChartExporter.exportChart(chart,output);
+		ChartExporter.exportChart(chart, output);
 		byte[] b = output.toByteArray();
-		if(b!=null){
+		if (b != null) {
 			Image image = Image.getInstance(b);
 			float width = Float.parseFloat(String.valueOf(chart.getWidthPx()));
 			float height = Float.parseFloat(String.valueOf(chart.getHeightPx()));
-			//System.out.println("scale: "+width+"--"+height);
-			//image.scaleAbsolute(chart.getWidthPx(),chart.getHeightPx());
-			//image.scalePercent(50);
-			image.scaleAbsolute(width,height);
-//			System.out.println("position: " + chart.getLeftPx() + "--"
-//					+  (pdfDocument.getPageSize().getHeight() -chart.getTopPx()-chart.getHeightPx()));
-//			System.out.println("pageHeight: "+pdfDocument.getPageSize().getHeight());
-			//image.setAbsolutePosition(chart.getLeftPx(), pdfDocument
-			//		.getPageSize().getHeight()
-			//		- chart.getTopPx()-chart.getHeightPx());
+			// System.out.println("scale: "+width+"--"+height);
+			// image.scaleAbsolute(chart.getWidthPx(),chart.getHeightPx());
+			// image.scalePercent(50);
+			image.scaleAbsolute(width, height);
+			// System.out.println("position: " + chart.getLeftPx() + "--"
+			// + (pdfDocument.getPageSize().getHeight()
+			// -chart.getTopPx()-chart.getHeightPx()));
+			// System.out.println("pageHeight: "+pdfDocument.getPageSize().getHeight());
+			// image.setAbsolutePosition(chart.getLeftPx(), pdfDocument
+			// .getPageSize().getHeight()
+			// - chart.getTopPx()-chart.getHeightPx());
 			PdfPTable table = new PdfPTable(1);
-			//table.setTotalWidth(width);
-			//table.setWidths(new float[]{width});
-			//table.setLockedWidth(true);
-			
-			//此处若使用PdfPCell cell= new PdfPCell(image)则图片会超出上面设定的width和height，原因不知
-			PdfPCell cell= new PdfPCell();
+			// table.setTotalWidth(width);
+			// table.setWidths(new float[]{width});
+			// table.setLockedWidth(true);
+
+			// 此处若使用PdfPCell cell= new PdfPCell(image)则图片会超出上面设定的width和height，原因不知
+			PdfPCell cell = new PdfPCell();
 			cell.setImage(image);
 			table.addCell(cell);
 			pdfDocument.add(table);
-			
+
 		}
 		output.close();
-		
+
 	}
 
 	/**
@@ -262,90 +323,90 @@ public class PDFReportExporter implements IReportExporter {
 
 		// 表风格
 		Style tableStyle = table.getStyle();
-		if (bodyStyle != null && tableStyle==null)
+		if (bodyStyle != null && tableStyle == null)
 			tableStyle = (Style) bodyStyle.clone();
-		
 
 		// 位置
-		//int rowsTop = Integer.parseInt(table.getTableTop());
-		//int colsLeft = Integer.parseInt(table.getTableLeft());
+		// int rowsTop = Integer.parseInt(table.getTableTop());
+		// int colsLeft = Integer.parseInt(table.getTableLeft());
 
 		int rowCount = table.getRealHeight();
 		int colCount = table.getRealWidth();
-		
-		float[] cols= new float[colsWidth.size()];
-		for(int i=0;i<colsWidth.size();i++){
-			cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)));			
-			//System.out.println(cols[i]);
-		}
-		
-//		float widths = 0.0f;
-//		for(int i=0;i<colsWidth.size();i++){
-//			widths += Float.parseFloat(String.valueOf(colsWidth.get(i)));	
-//		}
-//		float[] cols = new float[colsWidth.size()];
-//		for(int i=0;i<colsWidth.size();i++){
-//			cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)))/widths;
-//			System.out.println(cols[i]);
-//		}
-		
-		
-		//Table aTable = new Table(colCount, rowCount);
-		//aTable.setWidth(widths/PageSize.A4.getWidth());
-		//aTable.setWidths(cols);
-		//aTable.setLocked(true);
-		//setTableStyle(aTable, tableStyle);
-		//System.out.println(colsWidth);
-		
-		//PdfPTable pTable = new PdfPTable(colCount);	
-		//pTable.setTotalWidth(cols);
-		PdfPTable pTable = new PdfPTable(cols);
-		//pTable.setLockedWidth(true);
 
-		// 遍历所有行		
+		float[] cols = new float[colsWidth.size()];
+		for (int i = 0; i < colsWidth.size(); i++) {
+			cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)));
+			// System.out.println(cols[i]);
+		}
+
+		// float widths = 0.0f;
+		// for(int i=0;i<colsWidth.size();i++){
+		// widths += Float.parseFloat(String.valueOf(colsWidth.get(i)));
+		// }
+		// float[] cols = new float[colsWidth.size()];
+		// for(int i=0;i<colsWidth.size();i++){
+		// cols[i] = Float.parseFloat(String.valueOf(colsWidth.get(i)))/widths;
+		// System.out.println(cols[i]);
+		// }
+
+		// Table aTable = new Table(colCount, rowCount);
+		// aTable.setWidth(widths/PageSize.A4.getWidth());
+		// aTable.setWidths(cols);
+		// aTable.setLocked(true);
+		// setTableStyle(aTable, tableStyle);
+		// System.out.println(colsWidth);
+
+		// PdfPTable pTable = new PdfPTable(colCount);
+		// pTable.setTotalWidth(cols);
+		PdfPTable pTable = new PdfPTable(cols);
+		// pTable.setLockedWidth(true);
+
+		// 遍历所有行
 		List rows = table.getRows();
 		for (int i = 0; i < rows.size(); i++) {
-			//System.out.println("row"+(i+1));
-			Row row =(Row)rows.get(i);
-			if(row==null) continue;
+			// System.out.println("row"+(i+1));
+			Row row = (Row) rows.get(i);
+			if (row == null)
+				continue;
 			Style rowStyle = row.getStyle();
-			if(rowStyle==null && tableStyle!=null)
+			if (rowStyle == null && tableStyle != null)
 				rowStyle = tableStyle;
-			
+
 			List cells = row.getCells();
-			for (int j = 0; j < cells.size(); j++) {				
-				com.cvicse.inforreport.model.Cell modelCell = (com.cvicse.inforreport.model.Cell)cells.get(j);
-				PdfPCell pCell = createPdfpCell(modelCell, rowStyle,i+(report.getTitle()==null?0:report.getTitle().getHeight()));
-				pTable.addCell(pCell);		
+			for (int j = 0; j < cells.size(); j++) {
+				com.cvicse.inforreport.model.Cell modelCell = (com.cvicse.inforreport.model.Cell) cells.get(j);
+				PdfPCell pCell = createPdfpCell(modelCell, rowStyle,
+						i + (report.getTitle() == null ? 0 : report.getTitle().getHeight()));
+				pTable.addCell(pCell);
 			}
 			pTable.completeRow();
 
 		}
 
 		pdfDocument.add(pTable);
-		//pdfDocument.add(aTable);
-		
-	}	
+		// pdfDocument.add(aTable);
+
+	}
 
 	/**
-	 * @author qiao_lu1 
-	 * export cell using report but no border
+	 * @author qiao_lu1 export cell using report but no border
 	 * @param modelCell
 	 * @param rowStyle
 	 * @param rowNo
 	 * @return PdfPCell
 	 * @throws Exception
-	 */	
-	private PdfPCell createPdfpCell(com.cvicse.inforreport.model.Cell modelCell, Style rowStyle, int rowNo) throws Exception {
-		PdfPCell cell;		
-		
+	 */
+	private PdfPCell createPdfpCell(com.cvicse.inforreport.model.Cell modelCell, Style rowStyle, int rowNo)
+			throws Exception {
+		PdfPCell cell;
+
 		Style cellStyle = modelCell.getCellStyle();
 		// 2009.03.25 修改处理为4条边框
 
 		// 设置单元格内容
 		String cellContent = modelCell.getCellContent();
-		//System.out.println(cellContent);
-		CellEvent event = new CellEvent();		
+		// System.out.println(cellContent);
+		CellEvent event = new CellEvent();
 		event.setModelCell(modelCell);
 		if (cellStyle != null) {
 			Font cellFont = convertFont(cellStyle.getFont());
@@ -378,39 +439,39 @@ public class PDFReportExporter implements IReportExporter {
 
 		} else {
 			Font cellFont = createFontName("");
-			cell = new PdfPCell(new Phrase(cellContent,cellFont));
+			cell = new PdfPCell(new Phrase(cellContent, cellFont));
 			cell.setBorderWidth(0);
 			event.setPhrase(cell.getPhrase());
 		}
 		cell.setCellEvent(event);
-		
-		if(modelCell.getRowspan()==1)
+
+		if (modelCell.getRowspan() == 1)
 			cell.setFixedHeight(modelCell.getHeight());
-		
-		if("image".equals(modelCell.getType())||"Dyimage".equals(modelCell.getType())){
+
+		if ("image".equals(modelCell.getType()) || "Dyimage".equals(modelCell.getType())) {
 			byte[] b = modelCell.getPic();
 			Image image = null;
-			if(b!=null){ //db pic
-				image = Image.getInstance(b);	
-				cell.setImage(image);				
+			if (b != null) { // db pic
+				image = Image.getInstance(b);
+				cell.setImage(image);
 			} else {
 				b = (byte[]) report.getImages().get(cellContent);
 				if (b != null) { // template pic
-					image = Image.getInstance(b);					
+					image = Image.getInstance(b);
 					cell.setImage(image);
-				} else { //url
+				} else { // url
 					String content = modelCell.getCellContent();
 					if (content != null) {
-						if (content.startsWith("<img")){
-							//System.out.println("!!!!!"+content);
-							content = content.substring(content.indexOf("\"") + 1, 
+						if (content.startsWith("<img")) {
+							// System.out.println("!!!!!"+content);
+							content = content.substring(content.indexOf("\"") + 1,
 									content.indexOf("\"", content.indexOf("http")));
 						}
 						try {
 							IReportConfiger configer = ReportConfiger.getInstance();
 							System.setProperty("http.proxyHost", configer.getProxyHost());
 							System.setProperty("http.proxyPort", configer.getProxyPort());
-							//System.out.println(InetAddress.getLocalHost().getHostAddress());							
+							// System.out.println(InetAddress.getLocalHost().getHostAddress());
 							image = Image.getInstance(new URL(content));
 							cell.setImage(image);
 						} catch (Exception ex) {
@@ -419,18 +480,18 @@ public class PDFReportExporter implements IReportExporter {
 					}
 				}
 			}
-			
+
 		}
-		
-		//cell.setFixedHeight(Float.parseFloat(String.valueOf(rowsHeight.get(rowNo+1))));
+
+		// cell.setFixedHeight(Float.parseFloat(String.valueOf(rowsHeight.get(rowNo+1))));
 
 		// 处理合并单元格
 		int colspan = modelCell.getColspan();
 		int rowspan = modelCell.getRowspan();
 		if (colspan > 1)
 			cell.setColspan(colspan);
-		//if (rowspan > 1)
-			//cell.setRowspan(rowspan);
+		// if (rowspan > 1)
+		// cell.setRowspan(rowspan);
 
 		return cell;
 	}
@@ -444,9 +505,9 @@ public class PDFReportExporter implements IReportExporter {
 	 */
 	private Font convertFont(IRFont cellFont) throws Exception {
 		// 解决中文问题
-		//BaseFont bfChinese = BaseFont.createFont("STSong-Light",
-		//		"UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);	
-		
+		// BaseFont bfChinese = BaseFont.createFont("STSong-Light",
+		// "UniGB-UCS2-H", BaseFont.NOT_EMBEDDED);
+
 		Font font = createFontName(cellFont.getFontName());
 
 		String fontColor = cellFont.getForeColor();
@@ -469,15 +530,13 @@ public class PDFReportExporter implements IReportExporter {
 			font.setStyle(Font.UNDERLINE);
 		}
 
-		if ((cellFont.getFontName() == null)
-				|| ("".equals(cellFont.getFontName()))) {
+		if ((cellFont.getFontName() == null) || ("".equals(cellFont.getFontName()))) {
 			font.setFamily("宋体");
 		} else {
 			font.setFamily(cellFont.getFontName());
 		}
 
-		if ((cellFont.getFontSize() != null)
-				&& (!"".equals(cellFont.getFontSize()))) {
+		if ((cellFont.getFontSize() != null) && (!"".equals(cellFont.getFontSize()))) {
 			font.setSize(Float.parseFloat(cellFont.getFontSize()));
 		} else {
 			font.setSize(12);
@@ -485,7 +544,7 @@ public class PDFReportExporter implements IReportExporter {
 
 		return font;
 	}
-	
+
 	private Font createFontName(String fontName) throws Exception {
 		String osname = System.getProperty("os.name").toUpperCase();
 		Font font = null;
@@ -526,74 +585,72 @@ public class PDFReportExporter implements IReportExporter {
 			} else { // 宋体
 				fontFile = "simsun.ttc,1";
 			}
-			BaseFont bfChinese = BaseFont.createFont(System.getenv("SystemRoot")
-					+ "\\fonts\\" + fontFile, BaseFont.IDENTITY_H,
-					BaseFont.NOT_EMBEDDED);
+			BaseFont bfChinese = BaseFont.createFont(System.getenv("SystemRoot") + "\\fonts\\" + fontFile,
+					BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
 			font = new Font(bfChinese);
 
-		} else if("linux".equalsIgnoreCase(osname)){
-			String fontFile ="/usr/share/fonts/zh_CN/TrueType/zysong.ttf";
-			if(new File(fontFile).exists()){
-				BaseFont bfChinese = BaseFont.createFont(fontFile, BaseFont.IDENTITY_H,
-						BaseFont.NOT_EMBEDDED);
+		} else if ("linux".equalsIgnoreCase(osname)) {
+			String fontFile = "/usr/share/fonts/zh_CN/TrueType/zysong.ttf";
+			if (new File(fontFile).exists()) {
+				BaseFont bfChinese = BaseFont.createFont(fontFile, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
 				font = new Font(bfChinese);
-			}else{
+			} else {
 				font = new Font();
 			}
-				
-		}else if("aix".equalsIgnoreCase(osname)){
+
+		} else if ("aix".equalsIgnoreCase(osname)) {
 			String javahome = System.getenv("JAVA_HOME");
-			String fontFile =javahome+"/jre/lib/fonts/zysong.ttf";
-			if(new File(fontFile).exists()){
-				BaseFont bfChinese = BaseFont.createFont(fontFile, BaseFont.IDENTITY_H,
-						BaseFont.NOT_EMBEDDED);
+			String fontFile = javahome + "/jre/lib/fonts/zysong.ttf";
+			if (new File(fontFile).exists()) {
+				BaseFont bfChinese = BaseFont.createFont(fontFile, BaseFont.IDENTITY_H, BaseFont.NOT_EMBEDDED);
 				font = new Font(bfChinese);
-			}else{
+			} else {
 				font = new Font();
 			}
-		}
-		else {
-			//BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H",
-			//		BaseFont.EMBEDDED);
+		} else {
+			// BaseFont bfChinese = BaseFont.createFont("STSong-Light", "UniGB-UCS2-H",
+			// BaseFont.EMBEDDED);
 			font = new Font();
-			
-			//font = FontFactory.getFont("Arial");
+
+			// font = FontFactory.getFont("Arial");
 		}
-		
+
 		return font;
 	}
-	
+
 	// 2009.07.13
 	/**
-	 * @author li_feng2 
-	 * export cell using grid with borders
-	 *  
+	 * @author li_feng2 export cell using grid with borders
+	 * 
 	 */
-	private PdfPCell createPdfpCell(GridCell gridcell,float rowHeight) throws Exception {
+	private PdfPCell createPdfpCell(GridCell gridcell, float rowHeight) throws Exception {
 		PdfPCell pcell;
 		Font font;
 		Color color;
-		
+
 		Style style = gridcell.style;
 		String content = gridcell.cellText;
 		CellEvent event = new CellEvent();
 		event.setGridCell(gridcell);
-		
+
 		// 处理单元格风格
 		if (style == null) {
 			font = createFontName("");
-			pcell = new PdfPCell(new Phrase(content,font));
-		}else {
+			pcell = new PdfPCell(new Phrase(content, font));
+		} else {
 			font = convertFont(style.getFont());
-			pcell = new PdfPCell(new Phrase(content,font));
+			pcell = new PdfPCell(new Phrase(content, font));
 		}
 
 		// 处理合并单元格
 		int colspan = gridcell.colSpan;
 		int rowspan = gridcell.rowSpan;
-		if (colspan > 1) pcell.setColspan(colspan);
-		//if (rowspan > 1) cell.setRowspan(rowspan);
-		
+		if (colspan > 1)
+			pcell.setColspan(colspan);
+		// 2019.12.07奖励办,导出PDF放开行合并
+		if (rowspan > 1)
+			pcell.setRowspan(rowspan);
+
 		pcell.setBorderWidth(0);
 		event.setPhrase(pcell.getPhrase());
 
@@ -619,7 +676,7 @@ public class PDFReportExporter implements IReportExporter {
 			String backColor = style.getBackColor();
 			color = IRColor.getColorByNodeValue(backColor);
 			pcell.setBackgroundColor(color);
-			
+
 			// 边框
 			TBorder[] borders = style.getBorders();
 			if (borders != null) {
@@ -630,43 +687,54 @@ public class PDFReportExporter implements IReportExporter {
 					String borderPosition = border.borderPosition;
 					String borderWeight = border.borderWeight;
 					String borderColor = border.borderColor;
-					if (!borderType.equalsIgnoreCase("none")) {
+					if (!"none".equalsIgnoreCase(borderType)) {
+						// pcell.setBorder(0);
+						// }else {
 						if (!(borderColor != null && !borderColor.equals(""))) {
 							borderColor = allBorderColor;
 						}
 						color = IRColor.getColorByNodeValue(borderColor);
-						
+
 						float weight = Float.parseFloat(borderWeight);
 						if (weight > 0) {
 							// 感觉pdf的线性粗细是正常看到的一半
-							float f = (int)Math.round(weight/2*10)/10f;
-							
-							if (i==0) {//top
+							float f = (int) Math.round(weight / 2 * 10) / 10f;
+
+							if (i == 0) {// top
 								pcell.setBorderColorTop(color);
-								pcell.setBorderWidthTop(f);								
+								pcell.setBorderWidthTop(f);
 							}
-							if (i==1) {//bottom
+							if (i == 1) {// bottom
 								pcell.setBorderColorBottom(color);
 								pcell.setBorderWidthBottom(f);
 							}
-							if (i==2) {//left
+							if (i == 2) {// left
 								pcell.setBorderColorLeft(color);
 								pcell.setBorderWidthLeft(f);
 							}
-							if (i==3) {//right
+							if (i == 3) {// right
 								pcell.setBorderColorRight(color);
 								pcell.setBorderWidthRight(f);
 							}
-						}//if weight
-					}//if bodertype
-				}//for
+						} // if weight
+					} // if bodertype
+				} // for
 			}
 		}
 		pcell.setCellEvent(event);
-		
+
 		// 行高
-		if (gridcell.rowSpan == 1) {
-			pcell.setFixedHeight(rowHeight);
+		// 2020.03.16,奖励办
+		if (gridcell.rowSpan > 1) {
+			pcell.setMinimumHeight(rowHeight);
+		} else {
+			if("true".equalsIgnoreCase(style.getFixCellHeight())){
+				pcell.setFixedHeight(rowHeight);
+			} else if("true".equalsIgnoreCase(style.getAutoWrap())){
+				pcell.setMinimumHeight(rowHeight);
+			} else {
+				pcell.setFixedHeight(rowHeight);
+			}
 		}
 		
 		// 图片
@@ -675,20 +743,51 @@ public class PDFReportExporter implements IReportExporter {
 		if ("image".equals(gridcell.dataType)) {
 			// template pic
 			b = (byte[]) report.getImages().get(gridcell.cellValue);
-		}else if ("Dyimage".equals(gridcell.dataType)) {
+		} else if ("Dyimage".equals(gridcell.dataType)) {
 			b = (byte[]) gridcell.Pic;
 		}
 		if (b != null) {
-			image = Image.getInstance(b);					
+			image = Image.getInstance(b);
 			pcell.setImage(image);
 		}
 
 		return pcell;
 	}
-	
 
 	public String getExportType() {
 		return "PDF";
 	}
 
+	private void updateMergedCell(GridRow[] arrGridRows, Style style, int startRow, int startCol, int endRow,
+			int endCol) {
+		for (int i = startRow; i <= endRow; i++) {
+			GridRow gridrow = arrGridRows[i];
+			GridCell[] arrGridCells = gridrow.arrGridCells;
+			for (int j = startCol; j <= endCol; j++) {
+				if (style != null) {
+					Style tStyle = arrGridCells[j].style;
+					if (tStyle == null) {
+						arrGridCells[j].style = new Style();
+					}
+					arrGridCells[j].style.setBackColor(style.getBackColor());
+				}
+				arrGridCells[j].merged = false;
+				// System.out.println("处理合并单元格：第" + i + "行,第"+ j + "列。");
+			}
+		}
+	}
+
+	// public static void main(String[] args) {
+	// InforReport report = new InforReport();
+	// try {
+	// report.init(new File("D:\\iss-report\\奖励办\\comment_replyscore1.txt"));
+	// FileOutputStream fos = new FileOutputStream(new
+	// File("D:\\iss-report\\奖励办\\20191219\\pdf1.pdf"));
+	// PDFReportExporter exportor = new PDFReportExporter();
+	// exportor.exportReport(report, fos);
+	// } catch (Exception e) {
+	// // TODO Auto-generated catch block
+	// e.printStackTrace();
+	// }
+	// }
 }
